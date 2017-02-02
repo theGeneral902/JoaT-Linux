@@ -1,2 +1,2 @@
 # JoaT-Linux
-JoaT Linux (Jack-of-all-Trades)
+JoaT Linux (Jack-of-all-Trades) for Data Science
