@@ -17,6 +17,27 @@ if [ "$EUID" -ne 0 ]
 	exit 1
 fi
 
+# Create joat user
+id -u joat &>/dev/null || useradd joat
+id -u joat &>/dev/null || echo -e "joat\njoat" | (passwd joat)
+usermod -aG sudo joat
+
+# Update OS
+apt-get upgrade -y
+apt-get update -y
+
+# Install latest Anaconda
+CONTREPO=https://repo.continuum.io/archive/
+ANACONDAURL=$(wget -q -O - $CONTREPO index.html | grep "Anaconda3-" | grep "Linux" | grep "86_64" | head -n 1 | cut -d \" -f 2)
+wget -O ~/Downloads/anaconda.sh $CONTREPO$ANACONDAURL
+bash ~/Downloads/anaconda.sh -b -p $HOME/anaconda
+export PATH="/home/hadoop/anaconda/bin/:$PATH"
+rm -f ~/Downloads/anaconda.sh
+conda update conda -y
+conda update anaconda -y
+conda install -c r r-essentials -y
+
+# Install R
 if [[ -r /etc/os-release ]]; then
     . /etc/os-release
     if [[ $ID = ubuntu ]]; then
@@ -43,24 +64,21 @@ if [[ -r /etc/os-release ]]; then
 else
     echo "Not running a distribution with /etc/os-release available"
 fi
-exit 1
 
-# Create joat user
-id -u joat &>/dev/null || useradd joat
-id -u joat &>/dev/null || echo -e "joat\njoat" | (passwd joat)
-usermod -aG sudo joat
+apt-get update
+apt-get install r-base -y
+apt-get install r-base-dev -y
+apt-get install gdebi-core -y
+wget https://download1.rstudio.org/rstudio-1.0.136-amd64.deb
+gdebi -n rstudio-1.0.136-amd64.deb
+rm rstudio-1.0.136-amd64.deb
 
-# Update OS
-apt-get upgrade -y
-apt-get update -y
+# Install R packages
+Rscript r-updates-JoaT.r
 
-# Install latest Anaconda
-CONTREPO=https://repo.continuum.io/archive/
-ANACONDAURL=$(wget -q -O - $CONTREPO index.html | grep "Anaconda3-" | grep "Linux" | grep "86_64" | head -n 1 | cut -d \" -f 2)
-wget -O ~/Downloads/anaconda.sh $CONTREPO$ANACONDAURL
-bash ~/Downloads/anaconda.sh -b -p $HOME/anaconda
-export PATH="/home/hadoop/anaconda/bin/:$PATH"
-rm -f ~/Downloads/anaconda.sh
-conda update conda -y
-conda update anaconda -y
-conda install -c r r-essentials -y
+# Install MySQL
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get -q -y install mysql-server
+mysqladmin -u root password joat
+apt-get install mysql-workbench -y
+service mysql stop
